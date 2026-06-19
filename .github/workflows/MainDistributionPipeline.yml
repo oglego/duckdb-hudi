@@ -22,7 +22,3 @@ jobs:
       extension_name: duckdb_hudi
       extra_toolchains: rust;python3
       exclude_archs: 'wasm_mvp;wasm_eh;wasm_threads;linux_amd64_musl'
-      
-      # Forces the underlying cargo-vcpkg linker to automatically map 
-      # the vcpkg-installed protoc straight into lance-encoding's build context
-      matrix_config: '{"env": {"VCPKGRS_DYNAMIC": "1"}}'

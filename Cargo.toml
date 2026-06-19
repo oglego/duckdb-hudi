@@ -22,3 +22,8 @@ duckdb = { version = "~1.10503.1", features = ["loadable-extension"] }
 hudi = { git = "https://github.com/apache/hudi-rs", branch = "main" }
 tokio = { version = "1", features = ["rt-multi-thread"] }
 vcpkg = "0.2.15"
+
+[build-dependencies]
+# This forces the protobuf compiler to compile cleanly from source 
+# inside the cargo workspace, requiring zero external system tools.
+prost-build = { version = "*", features = ["vendored"] }
