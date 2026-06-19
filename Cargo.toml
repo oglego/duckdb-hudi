@@ -21,3 +21,4 @@ arrow-cast = "57.0.0"
 duckdb = { version = "~1.10503.1", features = ["loadable-extension"] }
 hudi = { git = "https://github.com/apache/hudi-rs", branch = "main" }
 tokio = { version = "1", features = ["rt-multi-thread"] }
+vcpkg = "0.2.15"
