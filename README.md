@@ -1,20 +1,22 @@
-# DuckDB Rust extension template
-This is an **experimental** template for Rust based extensions based on the C Extension API of DuckDB. The goal is to
-turn this eventually into a stable basis for pure-Rust DuckDB extensions that can be submitted to the Community extensions
-repository
+# duckdb_hudi
 
-Features:
-- No DuckDB build required
-- No C++ or C code required
-- CI/CD chain preconfigured
-- (Coming soon) Works with community extensions
+A native, zero-JVM DuckDB extension written in Rust that allows you to scan Apache Hudi tables directly into DuckDB's high-performance vectorized storage engine. 
+
+By leveraging `hudi-rs` and `duckdb-rs` under the hood, this extension bypasses traditional Spark/JVM runtime dependencies entirely, making it ideal for fast, local analytical queries or embedded data lakehouse pipelines.
+
+## Features
+- **Zero JVM/Spark Overhead:** Pure Rust data loading straight into DuckDB memory.
+- **No Heavy Builds:** Compiles directly via Cargo without requiring local DuckDB C++ source builds.
+- **Automated Tooling:** Complete integration with DuckDB's standard extension CI/CD toolchain.
+
+---
 
 ## Cloning
 
-Clone the repo with submodules
+Clone the repository along with its required submodules:
 
 ```shell
-git clone --recurse-submodules <repo>
+git clone --recurse-submodules https://github.com/oglego/duckdb-hudi.git
 ```
 
 ## Dependencies
@@ -59,17 +61,8 @@ duckdb -unsigned
 After loading the extension by the file path, you can use the functions provided by the extension (in this case, `rusty_quack()`).
 
 ```sql
-LOAD './build/debug/extension/rusty_quack/rusty_quack.duckdb_extension';
-SELECT * FROM rusty_quack('Jane');
-```
-
-```
-┌─────────────────────┐
-│       column0       │
-│       varchar       │
-├─────────────────────┤
-│ Rusty Quack Jane 🐥 │
-└─────────────────────┘
+LOAD './build/debug/extension/duckdb_hudi/duckdb_hudi.duckdb_extension';
+SELECT * FROM hudi_scan();
 ```
 
 ## Testing
