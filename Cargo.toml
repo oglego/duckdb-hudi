@@ -23,9 +23,10 @@ hudi = { git = "https://github.com/apache/hudi-rs", branch = "main" }
 tokio = { version = "1", features = ["rt-multi-thread"] }
 vcpkg = "0.2.15"
 
+# This forces the downstream lance dependency to build protoc from source
+# without messing up the specific crate version managed by hudi-rs
+lance-encoding = { version = "*", features = ["protoc"] }
+
 [build-dependencies]
-# This forces the protobuf compiler to compile cleanly from source 
-# inside the cargo workspace, requiring zero external system tools.
-prost-build = { version = "*", features = ["vendored"] }
 # Compiles protoc directly from source when system binaries are missing
 protobuf-src = "2.0"
