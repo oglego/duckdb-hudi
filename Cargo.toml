@@ -27,3 +27,5 @@ vcpkg = "0.2.15"
 # This forces the protobuf compiler to compile cleanly from source 
 # inside the cargo workspace, requiring zero external system tools.
 prost-build = { version = "*", features = ["vendored"] }
+# Compiles protoc directly from source when system binaries are missing
+protobuf-src = "2.0"
