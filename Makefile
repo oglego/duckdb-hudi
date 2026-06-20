@@ -1,4 +1,4 @@
-.PHONY: clean clean_all
+.PHONY: clean clean_all install_protoc
 
 PROJ_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 
@@ -13,14 +13,32 @@ TARGET_DUCKDB_VERSION=v1.5.3
 
 all: configure debug
 
+# Detect the operating system running the Makefile to establish the bootstrap command
+ifeq ($(OS),Windows_NT)
+    BOOTSTRAP_PROTOC := where protoc >nul 2>nul || choco install protoc -y
+else
+    UNAME_S := $(shell uname -s)
+    ifeq ($(UNAME_S),Linux)
+        BOOTSTRAP_PROTOC := command -v protoc >/dev/null 2>&1 || (sudo apt-get update && sudo apt-get install -y protobuf-compiler)
+    endif
+    ifeq ($(UNAME_S),Darwin)
+        BOOTSTRAP_PROTOC := command -v protoc >/dev/null 2>&1 || brew install protobuf
+    endif
+endif
+
+# Define a dedicated target for installing protoc (Make sure to use a literal Tab before the command!)
+install_protoc:
+	$(BOOTSTRAP_PROTOC)
+
 # Include makefiles from DuckDB
 include extension-ci-tools/makefiles/c_api_extensions/base.Makefile
 include extension-ci-tools/makefiles/c_api_extensions/rust.Makefile
 
 configure: venv platform extension_version
 
-debug: build_extension_library_debug build_extension_with_metadata_debug
-release: build_extension_library_release build_extension_with_metadata_release
+# Attach the protoc installation target as a dependency before the actual compilation targets fire
+debug: install_protoc build_extension_library_debug build_extension_with_metadata_debug
+release: install_protoc build_extension_library_release build_extension_with_metadata_release
 
 test: test_debug
 test_debug: test_extension_debug

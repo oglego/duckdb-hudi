@@ -22,7 +22,3 @@ duckdb = { version = "~1.10503.1", features = ["loadable-extension"] }
 hudi = { git = "https://github.com/apache/hudi-rs", branch = "main" }
 tokio = { version = "1", features = ["rt-multi-thread"] }
 vcpkg = "0.2.15"
-
-[build-dependencies]
-ureq = { version = "2.10", features = ["tls"] }
-zip = { version = "2.1", default-features = false, features = ["deflate"] }
