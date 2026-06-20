@@ -1760,7 +1760,9 @@ dependencies = [
  "duckdb",
  "hudi",
  "tokio",
+ "ureq",
  "vcpkg",
+ "zip 2.4.2",
 ]
 
 [[package]]
@@ -2326,7 +2328,7 @@ dependencies = [
  "parquet",
  "paste",
  "percent-encoding",
- "prost 0.14.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "prost",
  "serde",
  "serde_json",
  "strum 0.28.0",
@@ -2386,7 +2388,7 @@ dependencies = [
  "tokio",
  "tokio-rustls",
  "tower-service",
- "webpki-roots",
+ "webpki-roots 1.0.7",
 ]
 
 [[package]]
@@ -2772,7 +2774,7 @@ dependencies = [
  "num_cpus",
  "object_store",
  "pin-project",
- "prost 0.14.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "prost",
  "rand 0.9.4",
  "roaring",
  "serde_json",
@@ -2812,9 +2814,9 @@ dependencies = [
  "log",
  "lz4",
  "num-traits",
- "prost 0.14.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "prost",
  "prost-build",
- "prost-types 0.14.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "prost-types",
  "rand 0.9.4",
  "snafu",
  "strum 0.26.3",
@@ -2850,9 +2852,9 @@ dependencies = [
  "log",
  "num-traits",
  "object_store",
- "prost 0.14.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "prost",
  "prost-build",
- "prost-types 0.14.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "prost-types",
  "snafu",
  "tokio",
  "tracing",
@@ -2891,7 +2893,7 @@ dependencies = [
  "opendal",
  "path_abs",
  "pin-project",
- "prost 0.14.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "prost",
  "rand 0.9.4",
  "serde",
  "snafu",
@@ -3023,7 +3025,7 @@ dependencies = [
  "syn 2.0.117",
  "tar",
  "vcpkg",
- "zip",
+ "zip 6.0.0",
 ]
 
 [[package]]
@@ -3712,31 +3714,23 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "528ac67416ff8646872a3c02cad9cc4ee5dc9f9540c9b10771855c95cb2e5ae1"
 dependencies = [
  "bytes",
- "prost-derive 0.14.4 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "prost"
-version = "0.14.4"
-source = "git+https://github.com/tokio-rs/prost.git#13646cde7eab75c81b3047767aa0a86e7dbecf12"
-dependencies = [
- "bytes",
- "prost-derive 0.14.4 (git+https://github.com/tokio-rs/prost.git)",
+ "prost-derive",
 ]
 
 [[package]]
 name = "prost-build"
 version = "0.14.4"
-source = "git+https://github.com/tokio-rs/prost.git#13646cde7eab75c81b3047767aa0a86e7dbecf12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "03da047801ff44bb6a4d407d4860c05fd70bb81714e6b2f3812603d5b145b042"
 dependencies = [
  "heck",
- "itertools 0.13.0",
+ "itertools 0.14.0",
  "log",
  "multimap",
  "petgraph",
  "prettyplease",
- "prost 0.14.4 (git+https://github.com/tokio-rs/prost.git)",
- "prost-types 0.14.4 (git+https://github.com/tokio-rs/prost.git)",
+ "prost",
+ "prost-types",
  "regex",
  "syn 2.0.117",
  "tempfile",
@@ -3756,32 +3750,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "prost-derive"
-version = "0.14.4"
-source = "git+https://github.com/tokio-rs/prost.git#13646cde7eab75c81b3047767aa0a86e7dbecf12"
-dependencies = [
- "anyhow",
- "itertools 0.13.0",
- "proc-macro2",
- "quote",
- "syn 2.0.117",
-]
-
-[[package]]
 name = "prost-types"
 version = "0.14.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f94967dc7688f3054c7fac87473ffae4cc4c3904800e2d9f5b857246d8963b0a"
 dependencies = [
- "prost 0.14.4 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "prost-types"
-version = "0.14.4"
-source = "git+https://github.com/tokio-rs/prost.git#13646cde7eab75c81b3047767aa0a86e7dbecf12"
-dependencies = [
- "prost 0.14.4 (git+https://github.com/tokio-rs/prost.git)",
+ "prost",
 ]
 
 [[package]]
@@ -4099,7 +4073,7 @@ dependencies = [
  "wasm-bindgen-futures",
  "wasm-streams",
  "web-sys",
- "webpki-roots",
+ "webpki-roots 1.0.7",
 ]
 
 [[package]]
@@ -4251,6 +4225,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ef86cd5876211988985292b91c96a8f2d298df24e75989a43a3c73f2d4d8168b"
 dependencies = [
  "aws-lc-rs",
+ "log",
  "once_cell",
  "ring",
  "rustls-pki-types",
@@ -5123,6 +5098,22 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8ecb6da28b8a351d773b68d5825ac39017e680750f980f3a1a85cd8dd28a47c1"
 
 [[package]]
+name = "ureq"
+version = "2.12.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "02d1a66277ed75f640d608235660df48c8e3c19f3b4edb6a263315626cc3c01d"
+dependencies = [
+ "base64",
+ "flate2",
+ "log",
+ "once_cell",
+ "rustls",
+ "rustls-pki-types",
+ "url",
+ "webpki-roots 0.26.11",
+]
+
+[[package]]
 name = "url"
 version = "2.5.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5340,6 +5331,15 @@ checksum = "5a6580f308b1fad9207618087a65c04e7a10bc77e02c8e84e9b00dd4b12fa0bb"
 dependencies = [
  "js-sys",
  "wasm-bindgen",
+]
+
+[[package]]
+name = "webpki-roots"
+version = "0.26.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "521bc38abb08001b01866da9f51eb7c5d647a19260e00054a8c7fd5f9e57f7a9"
+dependencies = [
+ "webpki-roots 1.0.7",
 ]
 
 [[package]]
@@ -5847,6 +5847,23 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.117",
+]
+
+[[package]]
+name = "zip"
+version = "2.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fabe6324e908f85a1c52063ce7aa26b68dcb7eb6dbc83a2d148403c9bc3eba50"
+dependencies = [
+ "arbitrary",
+ "crc32fast",
+ "crossbeam-utils",
+ "displaydoc",
+ "flate2",
+ "indexmap",
+ "memchr",
+ "thiserror",
+ "zopfli",
 ]
 
 [[package]]

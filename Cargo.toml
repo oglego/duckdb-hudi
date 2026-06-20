@@ -23,6 +23,6 @@ hudi = { git = "https://github.com/apache/hudi-rs", branch = "main" }
 tokio = { version = "1", features = ["rt-multi-thread"] }
 vcpkg = "0.2.15"
 
-# The Patch table intercepts every request for 'prost-build' down the tree
-[patch.crates-io]
-prost-build = { git = "https://github.com/tokio-rs/prost.git", features = ["vendored"] }
+[build-dependencies]
+ureq = { version = "2.10", features = ["tls"] }
+zip = { version = "2.1", default-features = false, features = ["deflate"] }
