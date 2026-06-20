@@ -1759,7 +1759,6 @@ dependencies = [
  "arrow-cast 57.3.1",
  "duckdb",
  "hudi",
- "protobuf-src",
  "tokio",
  "vcpkg",
 ]
@@ -2327,7 +2326,7 @@ dependencies = [
  "parquet",
  "paste",
  "percent-encoding",
- "prost",
+ "prost 0.14.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde",
  "serde_json",
  "strum 0.28.0",
@@ -2773,7 +2772,7 @@ dependencies = [
  "num_cpus",
  "object_store",
  "pin-project",
- "prost",
+ "prost 0.14.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "rand 0.9.4",
  "roaring",
  "serde_json",
@@ -2813,9 +2812,9 @@ dependencies = [
  "log",
  "lz4",
  "num-traits",
- "prost",
+ "prost 0.14.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "prost-build",
- "prost-types",
+ "prost-types 0.14.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "rand 0.9.4",
  "snafu",
  "strum 0.26.3",
@@ -2851,9 +2850,9 @@ dependencies = [
  "log",
  "num-traits",
  "object_store",
- "prost",
+ "prost 0.14.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "prost-build",
- "prost-types",
+ "prost-types 0.14.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "snafu",
  "tokio",
  "tracing",
@@ -2892,7 +2891,7 @@ dependencies = [
  "opendal",
  "path_abs",
  "pin-project",
- "prost",
+ "prost 0.14.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "rand 0.9.4",
  "serde",
  "snafu",
@@ -3713,23 +3712,31 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "528ac67416ff8646872a3c02cad9cc4ee5dc9f9540c9b10771855c95cb2e5ae1"
 dependencies = [
  "bytes",
- "prost-derive",
+ "prost-derive 0.14.4 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "prost"
+version = "0.14.4"
+source = "git+https://github.com/tokio-rs/prost.git#13646cde7eab75c81b3047767aa0a86e7dbecf12"
+dependencies = [
+ "bytes",
+ "prost-derive 0.14.4 (git+https://github.com/tokio-rs/prost.git)",
 ]
 
 [[package]]
 name = "prost-build"
 version = "0.14.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "03da047801ff44bb6a4d407d4860c05fd70bb81714e6b2f3812603d5b145b042"
+source = "git+https://github.com/tokio-rs/prost.git#13646cde7eab75c81b3047767aa0a86e7dbecf12"
 dependencies = [
  "heck",
- "itertools 0.14.0",
+ "itertools 0.13.0",
  "log",
  "multimap",
  "petgraph",
  "prettyplease",
- "prost",
- "prost-types",
+ "prost 0.14.4 (git+https://github.com/tokio-rs/prost.git)",
+ "prost-types 0.14.4 (git+https://github.com/tokio-rs/prost.git)",
  "regex",
  "syn 2.0.117",
  "tempfile",
@@ -3749,21 +3756,32 @@ dependencies = [
 ]
 
 [[package]]
+name = "prost-derive"
+version = "0.14.4"
+source = "git+https://github.com/tokio-rs/prost.git#13646cde7eab75c81b3047767aa0a86e7dbecf12"
+dependencies = [
+ "anyhow",
+ "itertools 0.13.0",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.117",
+]
+
+[[package]]
 name = "prost-types"
 version = "0.14.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f94967dc7688f3054c7fac87473ffae4cc4c3904800e2d9f5b857246d8963b0a"
 dependencies = [
- "prost",
+ "prost 0.14.4 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
-name = "protobuf-src"
-version = "2.1.1+27.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6217c3504da19b85a3a4b2e9a5183d635822d83507ba0986624b5c05b83bfc40"
+name = "prost-types"
+version = "0.14.4"
+source = "git+https://github.com/tokio-rs/prost.git#13646cde7eab75c81b3047767aa0a86e7dbecf12"
 dependencies = [
- "cmake",
+ "prost 0.14.4 (git+https://github.com/tokio-rs/prost.git)",
 ]
 
 [[package]]
