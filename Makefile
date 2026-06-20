@@ -26,17 +26,17 @@ else
     endif
 endif
 
-# Define a dedicated target for installing protoc (Make sure to use a literal Tab before the command!)
 install_protoc:
 	$(BOOTSTRAP_PROTOC)
 
-# Include makefiles from DuckDB
 include extension-ci-tools/makefiles/c_api_extensions/base.Makefile
 include extension-ci-tools/makefiles/c_api_extensions/rust.Makefile
 
+build_extension_library_release: install_protoc
+build_extension_library_debug: install_protoc
+
 configure: venv platform extension_version
 
-# Attach the protoc installation target as a dependency before the actual compilation targets fire
 debug: install_protoc build_extension_library_debug build_extension_with_metadata_debug
 release: install_protoc build_extension_library_release build_extension_with_metadata_release
 
