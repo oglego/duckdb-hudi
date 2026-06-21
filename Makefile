@@ -13,6 +13,15 @@ TARGET_DUCKDB_VERSION=v1.5.3
 
 all: configure debug
 
+ifeq ($(UNAME_S),Linux)
+    BOOTSTRAP_PROTOC := command -v protoc >/dev/null 2>&1 || ( \
+        if [ "$$(id -u)" = "0" ]; then \
+            apt-get update && apt-get install -y protobuf-compiler; \
+        else \
+            sudo apt-get update && sudo apt-get install -y protobuf-compiler; \
+        fi)
+endif
+
 # Detect the operating system running the Makefile to establish the bootstrap command
 ifeq ($(OS),Windows_NT)
     BOOTSTRAP_PROTOC := where protoc >nul 2>nul || choco install protoc -y
