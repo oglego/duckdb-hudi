@@ -14,16 +14,10 @@ TARGET_DUCKDB_VERSION=v1.5.3
 all: configure debug
 
 ifeq ($(UNAME_S),Linux)
-    BOOTSTRAP_PROTOC := command -v protoc >/dev/null 2>&1 || ( \
-        if [ "$$(id -u)" = "0" ]; then \
-            apt-get update && apt-get install -y protobuf-compiler; \
-        else \
-            sudo apt-get update && sudo apt-get install -y protobuf-compiler; \
-        fi)
-endif
+    BOOTSTRAP_PROTOC := apt-get update && apt-get install -y protobuf-compiler
 
 install_protoc:
-	$(BOOTSTRAP_PROTOC)
+    $(BOOTSTRAP_PROTOC)
 
 include extension-ci-tools/makefiles/c_api_extensions/base.Makefile
 include extension-ci-tools/makefiles/c_api_extensions/rust.Makefile
