@@ -22,19 +22,6 @@ ifeq ($(UNAME_S),Linux)
         fi)
 endif
 
-# Detect the operating system running the Makefile to establish the bootstrap command
-ifeq ($(OS),Windows_NT)
-    BOOTSTRAP_PROTOC := where protoc >nul 2>nul || choco install protoc -y
-else
-    UNAME_S := $(shell uname -s)
-    ifeq ($(UNAME_S),Linux)
-        BOOTSTRAP_PROTOC := command -v protoc >/dev/null 2>&1 || (sudo apt-get update && sudo apt-get install -y protobuf-compiler)
-    endif
-    ifeq ($(UNAME_S),Darwin)
-        BOOTSTRAP_PROTOC := command -v protoc >/dev/null 2>&1 || brew install protobuf
-    endif
-endif
-
 install_protoc:
 	$(BOOTSTRAP_PROTOC)
 
