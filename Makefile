@@ -15,6 +15,7 @@ all: configure debug
 
 ifeq ($(UNAME_S),Linux)
     BOOTSTRAP_PROTOC := apt-get update && apt-get install -y protobuf-compiler
+endif
 
 install_protoc:
     $(BOOTSTRAP_PROTOC)
