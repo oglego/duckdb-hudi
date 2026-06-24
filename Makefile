@@ -11,14 +11,23 @@ USE_UNSTABLE_C_API=1
 # Target DuckDB version
 TARGET_DUCKDB_VERSION=v1.5.3
 
-all: configure debug
+UNAME_S := $(shell uname -s)
 
 ifeq ($(UNAME_S),Linux)
     BOOTSTRAP_PROTOC := apt-get update && apt-get install -y protobuf-compiler
+else ifeq ($(UNAME_S),Darwin)
+    BOOTSTRAP_PROTOC := brew install protobuf
+else
+    BOOTSTRAP_PROTOC := echo "Unsupported OS: $(UNAME_S). Please install protobuf-compiler manually." && exit 1
 endif
 
+# Use sudo if available, otherwise run without (e.g. in rootless containers)
+SUDO := $(shell command -v sudo 2>/dev/null && echo "sudo" || echo "")
+
+all: configure debug
+
 install_protoc:
-    $(BOOTSTRAP_PROTOC)
+	@which protoc > /dev/null 2>&1 && echo "protoc already installed, skipping" || $(SUDO) $(BOOTSTRAP_PROTOC)
 
 include extension-ci-tools/makefiles/c_api_extensions/base.Makefile
 include extension-ci-tools/makefiles/c_api_extensions/rust.Makefile
