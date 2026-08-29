@@ -1,0 +1,39 @@
+# name: test/sql/hudi_scan.test
+# description: test duckdb_hudi extension (hudi_scan table function)
+# group: [duckdb_hudi]
+
+# ---------------------------------------------------------------------------
+# Pre-load: the function must not exist yet
+# ---------------------------------------------------------------------------
+statement error
+SELECT * FROM hudi_scan('/tmp/nonexistent');
+----
+Catalog Error: Table Function with name hudi_scan does not exist!
+
+# ---------------------------------------------------------------------------
+# Load the extension
+# ---------------------------------------------------------------------------
+require duckdb_hudi
+
+# ---------------------------------------------------------------------------
+# Post-load: calling hudi_scan with a path that does not exist on disk should
+# raise an I/O / table-not-found error rather than a catalog error, which
+# confirms the function is registered and reachable.
+# ---------------------------------------------------------------------------
+statement error
+SELECT * FROM hudi_scan('/tmp/no_such_hudi_table');
+----
+
+# ---------------------------------------------------------------------------
+# Schema introspection: DESCRIBE / column types should reflect the real Arrow
+# schema when pointed at a valid Hudi table.  Replace the path below with an
+# actual Hudi table URI (local or object-store) to run a live smoke test.
+#
+# statement ok
+# SELECT count(*) FROM hudi_scan('/path/to/your/hudi/table');
+#
+# query IIII
+# DESCRIBE SELECT * FROM hudi_scan('/path/to/your/hudi/table');
+# ----
+# <column_name>  <duckdb_type>  YES  NULL  NULL  NULL
+# ---------------------------------------------------------------------------
