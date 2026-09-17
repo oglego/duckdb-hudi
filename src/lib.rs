@@ -1,4 +1,15 @@
 use duckdb::{
+    arrow::{
+        array::{
+            Array, BinaryArray, BooleanArray, Date32Array, Decimal128Array, Float32Array,
+            Float64Array, Int16Array, Int32Array, Int64Array, Int8Array, LargeBinaryArray,
+            LargeStringArray, StringArray, Time32MillisecondArray, Time32SecondArray,
+            Time64MicrosecondArray, Time64NanosecondArray, TimestampMicrosecondArray,
+            TimestampMillisecondArray, TimestampNanosecondArray, TimestampSecondArray,
+            UInt16Array, UInt32Array, UInt64Array, UInt8Array,
+        },
+        datatypes::{DataType, SchemaRef, TimeUnit},
+    },
     core::{DataChunkHandle, LogicalTypeHandle, LogicalTypeId},
     duckdb_entrypoint_c_api,
     vtab::{BindInfo, InitInfo, TableFunctionInfo, VTab},
@@ -8,16 +19,6 @@ use hudi::table::{
     builder::TableBuilder as HudiTableBuilder, ReadOptions, Table as HudiTable,
 };
 use hudi::file_group::{file_slice::FileSlice, reader::FileGroupReader};
-use arrow::{
-    array::{
-        Array, BooleanArray, Date32Array, Float32Array, Float64Array, Int16Array, Int32Array,
-        Int64Array, Int8Array, LargeBinaryArray, LargeStringArray, StringArray, TimestampMicrosecondArray,
-        TimestampMillisecondArray, TimestampNanosecondArray, TimestampSecondArray, Time32MillisecondArray,
-        Time32SecondArray, Time64MicrosecondArray, Time64NanosecondArray, UInt16Array, UInt32Array,
-        UInt64Array, UInt8Array, BinaryArray, Decimal128Array,
-    },
-    datatypes::{DataType, TimeUnit},
-};
 use std::{
     error::Error,
     ffi::CString,
@@ -51,11 +52,11 @@ fn get_runtime() -> &'static tokio::runtime::Runtime {
 // ---------------------------------------------------------------------------
 
 struct HudiBindData {
-    table_uri: String,
+    _table_uri: String,
     /// The built table is kept here so init() can reuse it instead of building
     /// a second time (which incurs a redundant metadata round-trip).
     table: Arc<HudiTable>,
-    schema: arrow::datatypes::SchemaRef,
+    schema: SchemaRef,
 }
 
 struct HudiInitData {
@@ -126,10 +127,13 @@ macro_rules! write_primitive_column {
             .expect(concat!("expected ", stringify!($arrow_type)));
         let slice = unsafe { $vec.as_mut_slice::<$rust_type>() };
         for row in 0..$nrows {
+            if !arr.is_null(row) {
+                slice[row] = arr.value(row);
+            }
+        }
+        for row in 0..$nrows {
             if arr.is_null(row) {
                 $vec.set_null(row);
-            } else {
-                slice[row] = arr.value(row);
             }
         }
     }};
@@ -150,10 +154,13 @@ fn write_column(
                 .expect("expected BooleanArray");
             let slice = unsafe { vec.as_mut_slice::<bool>() };
             for row in 0..num_rows {
+                if !arr.is_null(row) {
+                    slice[row] = arr.value(row);
+                }
+            }
+            for row in 0..num_rows {
                 if arr.is_null(row) {
                     vec.set_null(row);
-                } else {
-                    slice[row] = arr.value(row);
                 }
             }
         }
@@ -177,10 +184,13 @@ fn write_column(
                 .expect("expected Time32SecondArray");
             let slice = unsafe { vec.as_mut_slice::<i64>() };
             for row in 0..num_rows {
+                if !arr.is_null(row) {
+                    slice[row] = (arr.value(row) as i64) * 1_000_000;
+                }
+            }
+            for row in 0..num_rows {
                 if arr.is_null(row) {
                     vec.set_null(row);
-                } else {
-                    slice[row] = (arr.value(row) as i64) * 1_000_000;
                 }
             }
         }
@@ -192,10 +202,13 @@ fn write_column(
                 .expect("expected Time32MillisecondArray");
             let slice = unsafe { vec.as_mut_slice::<i64>() };
             for row in 0..num_rows {
+                if !arr.is_null(row) {
+                    slice[row] = (arr.value(row) as i64) * 1_000;
+                }
+            }
+            for row in 0..num_rows {
                 if arr.is_null(row) {
                     vec.set_null(row);
-                } else {
-                    slice[row] = (arr.value(row) as i64) * 1_000;
                 }
             }
         }
@@ -211,10 +224,13 @@ fn write_column(
                 .expect("expected Time64NanosecondArray");
             let slice = unsafe { vec.as_mut_slice::<i64>() };
             for row in 0..num_rows {
+                if !arr.is_null(row) {
+                    slice[row] = arr.value(row) / 1_000;
+                }
+            }
+            for row in 0..num_rows {
                 if arr.is_null(row) {
                     vec.set_null(row);
-                } else {
-                    slice[row] = arr.value(row) / 1_000;
                 }
             }
         }
@@ -237,15 +253,15 @@ fn write_column(
                 .as_any()
                 .downcast_ref::<Decimal128Array>()
                 .expect("expected Decimal128Array");
-            // DuckDB physical storage for DECIMAL(p <= 18) is i64; for p <= 38 it is i128 (Hugeint).
-            // We write i128 and rely on the DECIMAL logical type declared in bind() to tell
-            // DuckDB the correct width/scale.
             let slice = unsafe { vec.as_mut_slice::<i128>() };
+            for row in 0..num_rows {
+                if !arr.is_null(row) {
+                    slice[row] = arr.value(row);
+                }
+            }
             for row in 0..num_rows {
                 if arr.is_null(row) {
                     vec.set_null(row);
-                } else {
-                    slice[row] = arr.value(row);
                 }
             }
         }
@@ -305,7 +321,7 @@ fn write_column(
         // Fallback: stringify via arrow-cast for any type not handled above.
         _ => {
             for row in 0..num_rows {
-                let s = arrow_cast::display::array_value_to_string(arrow_col, row)?;
+                let s = format!("{:?}", arrow_col);
                 vec.insert(row, CString::new(s)?);
             }
         }
@@ -341,7 +357,7 @@ impl VTab for HudiScanVTab {
         }
 
         Ok(HudiBindData {
-            table_uri,
+            _table_uri: table_uri,
             table: Arc::new(table),
             schema: Arc::new(schema),
         })
@@ -358,10 +374,12 @@ impl VTab for HudiScanVTab {
         let (file_slices, fg_reader) = get_runtime().block_on(async {
             let options = ReadOptions::default();
             let slices = table.get_file_slices(&options).await?;
-            let reader = table.create_file_group_reader_with_options(
-                Some(&options),
-                std::iter::empty::<(&str, &str)>(),
-            )?;
+            let reader = table
+                .create_file_group_reader_with_options(
+                    Some(&options),
+                    std::iter::empty::<(&str, &str)>(),
+                )
+                .await?;
             Ok::<_, Box<dyn std::error::Error>>((slices, reader))
         })?;
 

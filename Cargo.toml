@@ -16,9 +16,7 @@ path = "src/wasm_lib.rs"
 crate-type = ["staticlib"]
 
 [dependencies]
-arrow = "57.0.0"
-arrow-cast = "57.0.0"
 duckdb = { version = "~1.10503.1", features = ["loadable-extension"] }
-hudi = { git = "https://github.com/apache/hudi-rs", branch = "main" }
+hudi = { git = "https://github.com/apache/hudi-rs", rev = "3abc4d5172434d58071ea8cd0ca5b6dbb5e191c7" }
 tokio = { version = "1", features = ["rt-multi-thread"] }
 vcpkg = "0.2.15"
