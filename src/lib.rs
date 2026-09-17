@@ -398,6 +398,7 @@ impl VTab for HudiScanVTab {
         func: &TableFunctionInfo<Self>,
         output: &mut DataChunkHandle,
     ) -> Result<(), Box<dyn std::error::Error>> {
+        eprintln!("[hudi_scan] func entered");
         let init_data = func.get_init_data();
 
         // SeqCst ordering ensures cross-thread visibility when DuckDB calls
@@ -426,6 +427,7 @@ impl VTab for HudiScanVTab {
         })?;
 
         let num_rows = batch.num_rows();
+        eprintln!("[hudi_scan] batch rows={} cols={}", num_rows, batch.num_columns());
         if num_rows == 0 {
             output.set_len(0);
             return Ok(());
@@ -433,6 +435,7 @@ impl VTab for HudiScanVTab {
 
         for col_idx in 0..batch.num_columns() {
             let arrow_col = batch.column(col_idx);
+            eprintln!("[hudi_scan] writing col {} type {:?}", col_idx, arrow_col.data_type());
             let mut duckdb_vector = output.flat_vector(col_idx);
             write_column(arrow_col.as_ref(), &mut duckdb_vector, num_rows)?;
         }
