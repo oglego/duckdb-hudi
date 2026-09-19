@@ -25,15 +25,18 @@ SELECT * FROM hudi_scan('/tmp/no_such_hudi_table');
 ----
 
 # ---------------------------------------------------------------------------
-# Schema introspection: DESCRIBE / column types should reflect the real Arrow
-# schema when pointed at a valid Hudi table.  Replace the path below with an
-# actual Hudi table URI (local or object-store) to run a live smoke test.
-#
-# statement ok
-# SELECT count(*) FROM hudi_scan('/path/to/your/hudi/table');
-#
-# query IIII
-# DESCRIBE SELECT * FROM hudi_scan('/path/to/your/hudi/table');
-# ----
-# <column_name>  <duckdb_type>  YES  NULL  NULL  NULL
+# Live smoke tests against the bundled fixture (5 rows across 3 city partitions:
+# san_francisco=3, sao_paulo=1, chennai=1). Paths are relative to the repo root,
+# which is where `make test_debug` / `make test_release` run from.
 # ---------------------------------------------------------------------------
+query I
+SELECT count(*) FROM hudi_scan('fixtures/hudi_table');
+----
+5
+
+query TI
+SELECT city, count(*) FROM hudi_scan('fixtures/hudi_table') GROUP BY city ORDER BY city;
+----
+chennai	1
+san_francisco	3
+sao_paulo	1

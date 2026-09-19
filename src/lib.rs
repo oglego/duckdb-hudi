@@ -1,6 +1,6 @@
 use duckdb::{
     arrow::{
-        array::RecordBatch,
+        array::{Array, RecordBatch},
         datatypes::SchemaRef,
         util::display::array_value_to_string,
     },
@@ -12,9 +12,15 @@ use duckdb::{
 use hudi::table::builder::TableBuilder as HudiTableBuilder;
 use std::{
     error::Error,
+    path::Path,
     sync::Arc,
     sync::atomic::{AtomicUsize, Ordering},
 };
+use url::Url;
+
+/// DuckDB's standard vector size. A data chunk can never hold more rows than this,
+/// so Arrow batches are sliced to at most this many rows in `init`.
+const DUCKDB_VECTOR_SIZE: usize = 2048;
 
 #[repr(C)]
 struct HudiBindData {
@@ -28,6 +34,23 @@ struct HudiInitData {
     batches: Vec<RecordBatch>,
 }
 
+fn normalize_table_uri(uri: &str) -> Result<String, Box<dyn Error>> {
+    if Url::parse(uri).is_ok() {
+        return Ok(uri.to_owned());
+    }
+
+    let path = Path::new(uri);
+    let absolute_path = if path.is_absolute() {
+        path.to_path_buf()
+    } else {
+        std::env::current_dir()?.join(path)
+    };
+
+    Url::from_file_path(absolute_path)
+        .map(|url| url.to_string())
+        .map_err(|_| format!("hudi_scan: invalid table path: {uri}").into())
+}
+
 struct HudiScanVTab;
 
 impl VTab for HudiScanVTab {
@@ -35,7 +58,7 @@ impl VTab for HudiScanVTab {
     type BindData = HudiBindData;
 
     fn bind(bind: &BindInfo) -> Result<Self::BindData, Box<dyn std::error::Error>> {
-        let table_uri = bind.get_parameter(0).to_string();
+        let table_uri = normalize_table_uri(&bind.get_parameter(0).to_string())?;
 
         let rt = tokio::runtime::Runtime::new()?;
         let schema = rt.block_on(async {
@@ -72,6 +95,21 @@ impl VTab for HudiScanVTab {
             Ok::<Vec<RecordBatch>, Box<dyn std::error::Error>>(data_batches)
         })?;
 
+        // Drop empty batches (an empty chunk would signal end-of-scan to DuckDB while
+        // real data may still follow) and slice oversized ones so every batch fits in
+        // a single DuckDB data chunk. Slicing is zero-copy.
+        let batches: Vec<RecordBatch> = batches
+            .into_iter()
+            .filter(|b| b.num_rows() > 0)
+            .flat_map(|b| {
+                let n = b.num_rows();
+                (0..n)
+                    .step_by(DUCKDB_VECTOR_SIZE)
+                    .map(|offset| b.slice(offset, DUCKDB_VECTOR_SIZE.min(n - offset)))
+                    .collect::<Vec<_>>()
+            })
+            .collect();
+
         Ok(HudiInitData {
             current_batch_idx: AtomicUsize::new(0),
             batches,
@@ -92,19 +130,20 @@ impl VTab for HudiScanVTab {
 
         let batch = &init_data.batches[idx];
         let num_rows = batch.num_rows();
-        
-        if num_rows == 0 {
-            output.set_len(0);
-            return Ok(());
-        }
 
-        for col_idx in 0..batch.num_columns() {
-            let arrow_col = batch.column(col_idx);
-            let duckdb_vector = output.flat_vector(col_idx);
+        for (col_idx, field) in func.get_bind_data().schema.fields().iter().enumerate() {
+            let arrow_col = batch.column_by_name(field.name()).ok_or_else(|| {
+                format!("hudi_scan: batch is missing column {}", field.name())
+            })?;
+            let mut duckdb_vector = output.flat_vector(col_idx);
 
             for row_idx in 0..num_rows {
+                if arrow_col.is_null(row_idx) {
+                    duckdb_vector.set_null(row_idx);
+                    continue;
+                }
                 let value_str = array_value_to_string(arrow_col, row_idx)?;
-                duckdb_vector.insert(row_idx, std::ffi::CString::new(value_str)?);
+                duckdb_vector.insert(row_idx, value_str.as_str());
             }
         }
 
@@ -122,7 +161,6 @@ const EXTENSION_NAME: &str = "hudi_scan";
 
 #[duckdb_entrypoint_c_api(ext_name = "duckdb_hudi")]
 pub unsafe fn extension_entrypoint(con: Connection) -> Result<(), Box<dyn Error>> {
-    con.register_table_function::<HudiScanVTab>(EXTENSION_NAME)
-        .expect("Failed to register hudi_scan table function");
+    con.register_table_function::<HudiScanVTab>(EXTENSION_NAME)?;
     Ok(())
 }
