@@ -1,6 +1,8 @@
 # duckdb-hudi
 
-A native, zero-JVM DuckDB extension written in Rust that allows you to scan Apache Hudi tables directly into DuckDB's high-performance vectorized storage engine. 
+🚧 WORK IN PROGRESS 🚧
+
+Prototype of a native, zero-JVM DuckDB extension written in Rust that allows you to scan Apache Hudi tables directly into DuckDB's high-performance vectorized storage engine. 
 
 By leveraging `hudi-rs` and `duckdb-rs` under the hood, this extension bypasses traditional Spark/JVM runtime dependencies entirely, making it ideal for fast, local analytical queries or embedded data lakehouse pipelines.
 
