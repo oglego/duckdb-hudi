@@ -40,3 +40,43 @@ SELECT city, count(*) FROM hudi_scan('fixtures/hudi_table') GROUP BY city ORDER 
 chennai	1
 san_francisco	3
 sao_paulo	1
+
+# ---------------------------------------------------------------------------
+# Native type mapping (previously every column was VARCHAR)
+# ---------------------------------------------------------------------------
+query TTT
+SELECT typeof(ts), typeof(fare), typeof(city) FROM hudi_scan('fixtures/hudi_table') LIMIT 1;
+----
+BIGINT	DOUBLE	VARCHAR
+
+query I
+SELECT max(ts) FROM hudi_scan('fixtures/hudi_table');
+----
+1695516137016
+
+query I
+SELECT count(*) FROM hudi_scan('fixtures/hudi_table') WHERE fare > 30;
+----
+2
+
+query R
+SELECT round(sum(fare), 2) FROM hudi_scan('fixtures/hudi_table');
+----
+132.7
+
+# ---------------------------------------------------------------------------
+# Projection pushdown: a subset of columns, in a different order than the schema
+# ---------------------------------------------------------------------------
+query T
+SELECT rider FROM hudi_scan('fixtures/hudi_table') ORDER BY rider;
+----
+rider-A
+rider-C
+rider-D
+rider-F
+rider-J
+
+query IT
+SELECT fare > 30 AS pricey, city FROM hudi_scan('fixtures/hudi_table') WHERE city = 'sao_paulo';
+----
+1	sao_paulo

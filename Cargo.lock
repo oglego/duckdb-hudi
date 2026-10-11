@@ -2477,6 +2477,7 @@ name = "duckdb_hudi"
 version = "0.1.0"
 dependencies = [
  "duckdb",
+ "futures",
  "hudi",
  "tokio",
  "url",
