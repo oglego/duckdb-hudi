@@ -15,7 +15,7 @@ use duckdb::{
     Connection, Result,
 };
 use futures::{stream::BoxStream, StreamExt};
-use hudi::table::{builder::TableBuilder as HudiTableBuilder, ReadOptions, Table as HudiTable};
+use hudi_rs::table::{builder::TableBuilder as HudiTableBuilder, ReadOptions, Table as HudiTable};
 use std::{
     error::Error,
     path::Path,
@@ -24,7 +24,8 @@ use std::{
 use tokio::runtime::Runtime;
 use url::Url;
 
-const EXTENSION_NAME: &str = "hudi_scan";
+/// SQL name of the table function registered by this extension.
+const SCAN_FUNCTION_NAME: &str = "hudi_scan";
 
 /// DuckDB's standard vector size. A data chunk can never hold more rows than this,
 /// so Arrow batches are sliced to at most this many rows before being emitted.
@@ -209,14 +210,41 @@ fn write_column(kind: ColKind, col: &ArrayRef, out: &mut FlatVector) -> Result<(
     Ok(())
 }
 
+/// Runs `f`, converting a panic into an ordinary error.
+///
+/// duckdb-rs calls `bind`/`init`/`func` from `extern "C"` callbacks without catching panics, so
+/// a panic in this crate or in hudi-rs/arrow would abort the entire DuckDB process. With this
+/// guard it surfaces as a SQL error instead (the panic message is still printed to stderr by
+/// Rust's default panic hook).
+fn guard<T>(
+    what: &str,
+    f: impl FnOnce() -> Result<T, Box<dyn Error>>,
+) -> Result<T, Box<dyn Error>> {
+    match std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)) {
+        Ok(result) => result,
+        Err(payload) => {
+            let msg = payload
+                .downcast_ref::<&str>()
+                .map(|s| s.to_string())
+                .or_else(|| payload.downcast_ref::<String>().cloned())
+                .unwrap_or_else(|| "unknown panic".to_string());
+            Err(format!("hudi_scan: internal error during {what}: {msg}").into())
+        }
+    }
+}
+
 struct HudiScanVTab;
 
-impl VTab for HudiScanVTab {
-    type InitData = HudiInitData;
-    type BindData = HudiBindData;
-
-    fn bind(bind: &BindInfo) -> Result<Self::BindData, Box<dyn Error>> {
-        let table_uri = normalize_table_uri(&bind.get_parameter(0).to_string())?;
+// The real implementations live here and are called through `guard` below.
+impl HudiScanVTab {
+    fn bind_impl(bind: &BindInfo) -> Result<HudiBindData, Box<dyn Error>> {
+        // Check for NULL before stringifying: asking DuckDB for the string form of a NULL
+        // value is not safe from this FFI layer.
+        let path_param = bind.get_parameter(0);
+        if path_param.is_null() {
+            return Err("hudi_scan: the table path must not be NULL".into());
+        }
+        let table_uri = normalize_table_uri(&path_param.to_string())?;
 
         let rt = runtime()?;
         let (table, schema) = rt.block_on(async {
@@ -239,7 +267,7 @@ impl VTab for HudiScanVTab {
         })
     }
 
-    fn init(info: &InitInfo) -> Result<Self::InitData, Box<dyn Error>> {
+    fn init_impl(info: &InitInfo) -> Result<HudiInitData, Box<dyn Error>> {
         // SAFETY: DuckDB guarantees the bind data set in `bind` outlives `init`.
         let bind_data = unsafe { &*info.get_bind_data::<HudiBindData>() };
         let fields = bind_data.schema.fields();
@@ -285,7 +313,7 @@ impl VTab for HudiScanVTab {
         })
     }
 
-    fn func(
+    fn func_impl(
         func: &TableFunctionInfo<Self>,
         output: &mut DataChunkHandle,
     ) -> Result<(), Box<dyn Error>> {
@@ -336,6 +364,26 @@ impl VTab for HudiScanVTab {
         output.set_len(batch.num_rows());
         Ok(())
     }
+}
+
+impl VTab for HudiScanVTab {
+    type InitData = HudiInitData;
+    type BindData = HudiBindData;
+
+    fn bind(bind: &BindInfo) -> Result<Self::BindData, Box<dyn Error>> {
+        guard("bind", || Self::bind_impl(bind))
+    }
+
+    fn init(info: &InitInfo) -> Result<Self::InitData, Box<dyn Error>> {
+        guard("init", || Self::init_impl(info))
+    }
+
+    fn func(
+        func: &TableFunctionInfo<Self>,
+        output: &mut DataChunkHandle,
+    ) -> Result<(), Box<dyn Error>> {
+        guard("scan", || Self::func_impl(func, output))
+    }
 
     fn supports_pushdown() -> bool {
         true
@@ -346,8 +394,9 @@ impl VTab for HudiScanVTab {
     }
 }
 
-#[duckdb_entrypoint_c_api(ext_name = "duckdb_hudi")]
+// `ext_name` must match the extension name in the Makefile, CI and description.yml.
+#[duckdb_entrypoint_c_api(ext_name = "hudi")]
 pub unsafe fn extension_entrypoint(con: Connection) -> Result<(), Box<dyn Error>> {
-    con.register_table_function::<HudiScanVTab>(EXTENSION_NAME)?;
+    con.register_table_function::<HudiScanVTab>(SCAN_FUNCTION_NAME)?;
     Ok(())
 }

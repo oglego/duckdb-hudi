@@ -2,22 +2,25 @@
 name = "duckdb_hudi"
 version = "0.1.0"
 edition = "2021"
+description = "DuckDB extension for scanning Apache Hudi tables, built on hudi-rs"
+license = "Apache-2.0"
+repository = "https://github.com/oglego/duckdb-hudi"
+readme = "README.md"
 
+# The extension-ci-tools Makefiles expect the library to be named after the extension
+# (`libhudi.so` / `libhudi.dylib` / `hudi.dll`), so the lib name differs from the package name.
 [lib]
+name = "hudi"
 crate-type = ["cdylib"]
 
 [profile.release]
 lto = true
 strip = true
 
-[[example]]
-name = "duckdb_hudi"
-path = "src/wasm_lib.rs"
-crate-type = ["staticlib"]
-
 [dependencies]
 duckdb = { version = "~1.10503.1", features = ["loadable-extension"] }
-hudi = { git = "https://github.com/apache/hudi-rs", rev = "3abc4d5172434d58071ea8cd0ca5b6dbb5e191c7" }
+# Renamed so it does not clash with this crate's own lib name (`hudi`).
+hudi_rs = { package = "hudi", git = "https://github.com/apache/hudi-rs", rev = "3abc4d5172434d58071ea8cd0ca5b6dbb5e191c7" }
 tokio = { version = "1", features = ["rt-multi-thread"] }
 futures = "0.3"
 url = "2"

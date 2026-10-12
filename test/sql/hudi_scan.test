@@ -1,6 +1,6 @@
 # name: test/sql/hudi_scan.test
-# description: test duckdb_hudi extension (hudi_scan table function)
-# group: [duckdb_hudi]
+# description: test hudi extension (hudi_scan table function)
+# group: [hudi]
 
 # ---------------------------------------------------------------------------
 # Pre-load: the function must not exist yet
@@ -13,7 +13,7 @@ Catalog Error: Table Function with name hudi_scan does not exist!
 # ---------------------------------------------------------------------------
 # Load the extension
 # ---------------------------------------------------------------------------
-require duckdb_hudi
+require hudi
 
 # ---------------------------------------------------------------------------
 # Post-load: calling hudi_scan with a path that does not exist on disk should
@@ -80,3 +80,72 @@ query IT
 SELECT fare > 30 AS pricey, city FROM hudi_scan('fixtures/hudi_table') WHERE city = 'sao_paulo';
 ----
 1	sao_paulo
+
+# ---------------------------------------------------------------------------
+# Full-row checks. Expected values were derived independently by reading the
+# fixture's Parquet files with DuckDB's own read_parquet (not through hudi_scan).
+# ---------------------------------------------------------------------------
+query ITT
+SELECT ts, rider, CAST(fare AS VARCHAR) FROM hudi_scan('fixtures/hudi_table') ORDER BY ts;
+----
+1695046462179	rider-D	33.9
+1695091554788	rider-C	27.7
+1695115999911	rider-J	17.85
+1695159649087	rider-A	19.1
+1695516137016	rider-F	34.15
+
+query TTT
+SELECT city, CAST(min(fare) AS VARCHAR), CAST(max(fare) AS VARCHAR)
+FROM hudi_scan('fixtures/hudi_table') GROUP BY city ORDER BY city;
+----
+chennai	17.85	17.85
+san_francisco	19.1	33.9
+sao_paulo	34.15	34.15
+
+# ---------------------------------------------------------------------------
+# Scan shapes: every column, no columns, a limit, a filter, and two scans of the
+# same table in one query (each scan must have its own independent stream).
+# ---------------------------------------------------------------------------
+query I
+SELECT count(*) FROM (SELECT * FROM hudi_scan('fixtures/hudi_table'));
+----
+5
+
+query I
+SELECT count(*) FROM (SELECT 1 FROM hudi_scan('fixtures/hudi_table'));
+----
+5
+
+query I
+SELECT count(*) FROM (SELECT * FROM hudi_scan('fixtures/hudi_table') LIMIT 2);
+----
+2
+
+query I
+SELECT count(*) FROM hudi_scan('fixtures/hudi_table') WHERE city IN ('chennai', 'sao_paulo');
+----
+2
+
+query I
+SELECT count(*) FROM hudi_scan('fixtures/hudi_table') a JOIN hudi_scan('fixtures/hudi_table') b USING (uuid);
+----
+5
+
+# Hudi's metadata columns (_hoodie_*) are not part of the scan's schema; only data columns are.
+statement error
+SELECT _hoodie_commit_time FROM hudi_scan('fixtures/hudi_table');
+----
+Binder Error
+
+# ---------------------------------------------------------------------------
+# Error handling
+# ---------------------------------------------------------------------------
+# A directory that exists but is not a Hudi table.
+statement error
+SELECT * FROM hudi_scan('fixtures');
+----
+
+statement error
+SELECT * FROM hudi_scan(NULL);
+----
+the table path must not be NULL
