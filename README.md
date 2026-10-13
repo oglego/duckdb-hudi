@@ -107,6 +107,6 @@ See [`fixtures/README.md`](fixtures/README.md) for how to generate additional fi
 
 ## License
 
-Apache License 2.0, see [LICENSE](LICENSE). This extension statically links
+MIT License, see [LICENSE](LICENSE). This extension statically links
 [hudi-rs](https://github.com/apache/hudi-rs) (Apache-2.0) and other third-party crates; their licenses
 apply to their respective code.

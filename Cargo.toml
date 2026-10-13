@@ -3,7 +3,7 @@ name = "duckdb_hudi"
 version = "0.1.0"
 edition = "2021"
 description = "DuckDB extension for scanning Apache Hudi tables, built on hudi-rs"
-license = "Apache-2.0"
+license = "MIT"
 repository = "https://github.com/oglego/duckdb-hudi"
 readme = "README.md"
 
