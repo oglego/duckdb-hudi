@@ -1,0 +1,73 @@
+# name: test/sql/hudi_scan_large.test
+# description: hudi_scan on a 10k-row table with updates, NULLs and multiple batches
+# group: [hudi]
+
+require hudi
+
+# Row count spans several 2048-row vectors
+query I
+SELECT count(*) FROM hudi_scan('fixtures/hudi_table_large');
+----
+10000
+
+# The upsert commit replaced rows rather than duplicating them
+query I
+SELECT count(DISTINCT uuid) FROM hudi_scan('fixtures/hudi_table_large');
+----
+10000
+
+# Exactly the 1000 updated rows carry the bumped ts
+query I
+SELECT count(*) FROM hudi_scan('fixtures/hudi_table_large') WHERE ts >= 1700010000000;
+----
+1000
+
+query I
+SELECT count(*) FROM hudi_scan('fixtures/hudi_table_large') WHERE fare IS NULL;
+----
+1013
+
+query I
+SELECT count(*) FROM hudi_scan('fixtures/hudi_table_large') WHERE rider IS NULL;
+----
+1004
+
+query TI
+SELECT city, count(*) FROM hudi_scan('fixtures/hudi_table_large') GROUP BY city ORDER BY city;
+----
+chennai	3333
+san_francisco	3334
+sao_paulo	3333
+
+# A LIMIT that crosses the 2048-row vector boundary
+query I
+SELECT count(*) FROM (SELECT * FROM hudi_scan('fixtures/hudi_table_large') LIMIT 2500);
+----
+2500
+
+# Value ranges implied by the generator
+query I
+SELECT count(*) FROM hudi_scan('fixtures/hudi_table_large') WHERE passengers BETWEEN 1 AND 4;
+----
+10000
+
+query I
+SELECT count(*) FROM hudi_scan('fixtures/hudi_table_large')
+WHERE trip_date BETWEEN DATE '2024-01-01' AND DATE '2024-12-30';
+----
+10000
+
+statement ok
+SET TimeZone='UTC';
+
+query I
+SELECT typeof(pickup_time) FROM hudi_scan('fixtures/hudi_table_large') LIMIT 1;
+----
+TIMESTAMP WITH TIME ZONE
+
+query I
+SELECT count(*) FROM hudi_scan('fixtures/hudi_table_large')
+WHERE pickup_time >= TIMESTAMPTZ '2024-01-01 00:00:00+00'
+  AND pickup_time <  TIMESTAMPTZ '2025-01-01 00:00:00+00';
+----
+10000

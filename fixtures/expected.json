@@ -1,0 +1,10 @@
+{
+  "rows": 10000,
+  "null_fares": 1013,
+  "null_riders": 1004,
+  "rows_per_city": {
+    "san_francisco": 3334,
+    "sao_paulo": 3333,
+    "chennai": 3333
+  }
+}

@@ -7,10 +7,14 @@ what hudi-rs supports.
 """
 import argparse
 import json
+import os, sys
 import random
 from datetime import date, datetime, timedelta
 
 from pyspark.sql import SparkSession
+
+os.environ.setdefault("PYSPARK_PYTHON", sys.executable)
+os.environ.setdefault("PYSPARK_DRIVER_PYTHON", sys.executable)
 
 HUDI_BUNDLE = "org.apache.hudi:hudi-spark3.5-bundle_2.12:0.15.0"
 CITIES = ["san_francisco", "sao_paulo", "chennai"]

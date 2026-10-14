@@ -1,0 +1,96 @@
+{
+  "partitionToWriteStats" : {
+    "san_francisco" : [ {
+      "fileId" : "1e12bd2a-eb51-4098-a428-bcac1e9c443a-0",
+      "path" : "san_francisco/1e12bd2a-eb51-4098-a428-bcac1e9c443a-0_0-52-152_20261014175145446.parquet",
+      "cdcStats" : null,
+      "prevCommit" : "20261014175139094",
+      "numWrites" : 3334,
+      "numDeletes" : 0,
+      "numUpdateWrites" : 344,
+      "numInserts" : 0,
+      "totalWriteBytes" : 512577,
+      "totalWriteErrors" : 0,
+      "tempPath" : null,
+      "partitionPath" : "san_francisco",
+      "totalLogRecords" : 0,
+      "totalLogFilesCompacted" : 0,
+      "totalLogSizeCompacted" : 0,
+      "totalUpdatedRecordsCompacted" : 0,
+      "totalLogBlocks" : 0,
+      "totalCorruptLogBlock" : 0,
+      "totalRollbackBlocks" : 0,
+      "fileSizeInBytes" : 512577,
+      "minEventTime" : null,
+      "maxEventTime" : null,
+      "runtimeStats" : {
+        "totalScanTime" : 0,
+        "totalUpsertTime" : 220,
+        "totalCreateTime" : 0
+      }
+    } ],
+    "sao_paulo" : [ {
+      "fileId" : "aaa0f279-8a3a-4001-a191-6db9e249e6f5-0",
+      "path" : "sao_paulo/aaa0f279-8a3a-4001-a191-6db9e249e6f5-0_1-52-153_20261014175145446.parquet",
+      "cdcStats" : null,
+      "prevCommit" : "20261014175139094",
+      "numWrites" : 3333,
+      "numDeletes" : 0,
+      "numUpdateWrites" : 322,
+      "numInserts" : 0,
+      "totalWriteBytes" : 512551,
+      "totalWriteErrors" : 0,
+      "tempPath" : null,
+      "partitionPath" : "sao_paulo",
+      "totalLogRecords" : 0,
+      "totalLogFilesCompacted" : 0,
+      "totalLogSizeCompacted" : 0,
+      "totalUpdatedRecordsCompacted" : 0,
+      "totalLogBlocks" : 0,
+      "totalCorruptLogBlock" : 0,
+      "totalRollbackBlocks" : 0,
+      "fileSizeInBytes" : 512551,
+      "minEventTime" : null,
+      "maxEventTime" : null,
+      "runtimeStats" : {
+        "totalScanTime" : 0,
+        "totalUpsertTime" : 220,
+        "totalCreateTime" : 0
+      }
+    } ],
+    "chennai" : [ {
+      "fileId" : "93ef765e-352c-4aeb-8b81-c709ce8f9c54-0",
+      "path" : "chennai/93ef765e-352c-4aeb-8b81-c709ce8f9c54-0_2-52-154_20261014175145446.parquet",
+      "cdcStats" : null,
+      "prevCommit" : "20261014175139094",
+      "numWrites" : 3333,
+      "numDeletes" : 0,
+      "numUpdateWrites" : 334,
+      "numInserts" : 0,
+      "totalWriteBytes" : 512433,
+      "totalWriteErrors" : 0,
+      "tempPath" : null,
+      "partitionPath" : "chennai",
+      "totalLogRecords" : 0,
+      "totalLogFilesCompacted" : 0,
+      "totalLogSizeCompacted" : 0,
+      "totalUpdatedRecordsCompacted" : 0,
+      "totalLogBlocks" : 0,
+      "totalCorruptLogBlock" : 0,
+      "totalRollbackBlocks" : 0,
+      "fileSizeInBytes" : 512433,
+      "minEventTime" : null,
+      "maxEventTime" : null,
+      "runtimeStats" : {
+        "totalScanTime" : 0,
+        "totalUpsertTime" : 217,
+        "totalCreateTime" : 0
+      }
+    } ]
+  },
+  "compacted" : false,
+  "extraMetadata" : {
+    "schema" : "{\"type\":\"record\",\"name\":\"fixture_table_record\",\"namespace\":\"hoodie.fixture_table\",\"fields\":[{\"name\":\"city\",\"type\":[\"null\",\"string\"],\"default\":null},{\"name\":\"fare\",\"type\":[\"null\",\"double\"],\"default\":null},{\"name\":\"is_shared\",\"type\":[\"null\",\"boolean\"],\"default\":null},{\"name\":\"passengers\",\"type\":[\"null\",\"long\"],\"default\":null},{\"name\":\"pickup_time\",\"type\":[\"null\",{\"type\":\"long\",\"logicalType\":\"timestamp-micros\"}],\"default\":null},{\"name\":\"rider\",\"type\":[\"null\",\"string\"],\"default\":null},{\"name\":\"trip_date\",\"type\":[\"null\",{\"type\":\"int\",\"logicalType\":\"date\"}],\"default\":null},{\"name\":\"ts\",\"type\":[\"null\",\"long\"],\"default\":null},{\"name\":\"uuid\",\"type\":[\"null\",\"string\"],\"default\":null}]}"
+  },
+  "operationType" : "UPSERT"
+}
