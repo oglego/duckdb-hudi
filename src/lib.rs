@@ -1,9 +1,9 @@
 use duckdb::{
     arrow::{
         array::{Array, ArrayRef, AsArray, BooleanArray, RecordBatch},
-        compute::cast,
+        compute::{cast, cast_with_options, CastOptions},
         datatypes::{
-            ArrowPrimitiveType, DataType, Date32Type, Float32Type, Float64Type, Int16Type,
+            ArrowPrimitiveType, DataType, Date32Type, Field, Float32Type, Float64Type, Int16Type,
             Int32Type, Int64Type, Int8Type, SchemaRef, TimeUnit, TimestampMicrosecondType,
             UInt16Type, UInt32Type, UInt64Type, UInt8Type,
         },
@@ -27,9 +27,15 @@ use url::Url;
 /// SQL name of the table function registered by this extension.
 const SCAN_FUNCTION_NAME: &str = "hudi_scan";
 
-/// DuckDB's standard vector size. A data chunk can never hold more rows than this,
-/// so Arrow batches are sliced to at most this many rows before being emitted.
-const DUCKDB_VECTOR_SIZE: usize = 2048;
+/// The number of rows a DuckDB data chunk can hold, as reported by the running DuckDB build.
+///
+/// This is 2048 for standard builds, but it is a compile-time option of DuckDB, so it is queried
+/// rather than hardcoded. Arrow batches are sliced to at most this many rows before being emitted.
+fn vector_size() -> usize {
+    // SAFETY: `duckdb_vector_size` takes no arguments and has no preconditions; the C API
+    // function table is initialised by the extension entrypoint before any scan runs.
+    (unsafe { duckdb::ffi::duckdb_vector_size() }) as usize
+}
 
 /// Shared tokio runtime. Creating a runtime per `bind`/`init` call is expensive and
 /// spawns a fresh worker pool every time.
@@ -44,7 +50,7 @@ fn runtime() -> Result<&'static Runtime, Box<dyn Error>> {
 }
 
 /// How an Arrow column is copied into a DuckDB vector.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum ColKind {
     Bool,
     I8,
@@ -105,6 +111,8 @@ struct ScanState {
 
 struct HudiInitData {
     state: Mutex<ScanState>,
+    /// DuckDB's vector capacity, captured once so batching and slicing always agree.
+    vector_size: usize,
     /// Schema field indices to emit, in output order (from projection pushdown).
     projection: Vec<usize>,
 }
@@ -135,7 +143,8 @@ fn copy_primitive<T: ArrowPrimitiveType>(col: &dyn Array, out: &mut FlatVector) 
     let len = arr.len();
     {
         // SAFETY: `T::Native` has the same layout as the DuckDB physical type selected
-        // in `map_type`, and `len <= DUCKDB_VECTOR_SIZE` is the vector capacity.
+        // in `map_type` (checked by `check_column_type`), and `len` never exceeds the
+        // vector capacity because `func_impl` slices batches to `vector_size()` rows.
         let dst = unsafe { out.as_mut_slice_with_len::<T::Native>(len) };
         dst.copy_from_slice(&arr.values()[..]);
     }
@@ -148,7 +157,32 @@ fn copy_primitive<T: ArrowPrimitiveType>(col: &dyn Array, out: &mut FlatVector) 
     }
 }
 
-fn write_column(kind: ColKind, col: &ArrayRef, out: &mut FlatVector) -> Result<(), Box<dyn Error>> {
+/// Verifies that a batch column has the Arrow type the bind-time schema promised.
+///
+/// The DuckDB result types are fixed at bind time from the table schema, but the batches come
+/// from the Parquet/log readers. If the two ever disagree (for example after schema evolution),
+/// the typed downcasts in `write_column` would panic, so fail with a clear error instead.
+fn check_column_type(field: &Field, kind: ColKind, col: &ArrayRef) -> Result<(), Box<dyn Error>> {
+    let (actual, _) = map_type(col.data_type());
+    if actual != kind {
+        return Err(format!(
+            "hudi_scan: column '{}' was declared as {} in the table schema but the data files \
+             contain {}; the table's schema may have evolved in an unsupported way",
+            field.name(),
+            field.data_type(),
+            col.data_type()
+        )
+        .into());
+    }
+    Ok(())
+}
+
+fn write_column(
+    name: &str,
+    kind: ColKind,
+    col: &ArrayRef,
+    out: &mut FlatVector,
+) -> Result<(), Box<dyn Error>> {
     let len = col.len();
     match kind {
         ColKind::Bool => {
@@ -182,7 +216,23 @@ fn write_column(kind: ColKind, col: &ArrayRef, out: &mut FlatVector) -> Result<(
                 DataType::Timestamp(_, tz) => tz.clone(),
                 other => return Err(format!("hudi_scan: expected timestamp, got {other}").into()),
             };
-            let micros = cast(col, &DataType::Timestamp(TimeUnit::Microsecond, tz))?;
+            // `safe: false` makes an out-of-range value an error instead of silently
+            // becoming NULL (seconds/millis/nanos are all converted to micros).
+            let options = CastOptions {
+                safe: false,
+                ..Default::default()
+            };
+            let micros = cast_with_options(
+                col,
+                &DataType::Timestamp(TimeUnit::Microsecond, tz),
+                &options,
+            )
+            .map_err(|e| {
+                format!(
+                    "hudi_scan: column '{name}' has a timestamp that cannot be represented \
+                     with microsecond precision ({e})"
+                )
+            })?;
             copy_primitive::<TimestampMicrosecondType>(micros.as_ref(), out);
         }
         ColKind::Utf8 => {
@@ -283,7 +333,8 @@ impl HudiScanVTab {
             return Err(format!("hudi_scan: unexpected projected column index {bad}").into());
         }
 
-        let mut options = ReadOptions::new().with_batch_size(DUCKDB_VECTOR_SIZE)?;
+        let vector_size = vector_size();
+        let mut options = ReadOptions::new().with_batch_size(vector_size)?;
         let is_identity =
             projection.len() == fields.len() && projection.iter().enumerate().all(|(a, &b)| a == b);
         if !is_identity {
@@ -309,6 +360,7 @@ impl HudiScanVTab {
                 stream,
                 pending: None,
             }),
+            vector_size,
             projection,
         })
     }
@@ -328,7 +380,7 @@ impl HudiScanVTab {
         // DuckDB while real data may still follow) and cap it at one vector.
         let batch = loop {
             if let Some((batch, offset)) = state.pending.take() {
-                let n = DUCKDB_VECTOR_SIZE.min(batch.num_rows() - offset);
+                let n = init_data.vector_size.min(batch.num_rows() - offset);
                 let slice = batch.slice(offset, n); // zero-copy
                 if offset + n < batch.num_rows() {
                     state.pending = Some((batch, offset + n));
@@ -353,14 +405,18 @@ impl HudiScanVTab {
 
         let fields = bind_data.schema.fields();
         for (out_idx, &field_idx) in init_data.projection.iter().enumerate() {
-            let name = fields[field_idx].name();
+            let field = &fields[field_idx];
+            let name = field.name();
             let col = batch
                 .column_by_name(name)
                 .ok_or_else(|| format!("hudi_scan: batch is missing column {name}"))?;
+            let kind = bind_data.kinds[field_idx];
+            check_column_type(field, kind, col)?;
             let mut vector = output.flat_vector(out_idx);
-            write_column(bind_data.kinds[field_idx], col, &mut vector)?;
+            write_column(name, kind, col, &mut vector)?;
         }
 
+        debug_assert!(batch.num_rows() <= init_data.vector_size);
         output.set_len(batch.num_rows());
         Ok(())
     }
