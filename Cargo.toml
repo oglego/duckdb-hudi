@@ -20,7 +20,12 @@ strip = true
 [dependencies]
 duckdb = { version = "~1.10505.0", features = ["loadable-extension"] }
 # Renamed so it does not clash with this crate's own lib name (`hudi`).
-hudi_rs = { package = "hudi", git = "https://github.com/apache/hudi-rs", rev = "3abc4d5172434d58071ea8cd0ca5b6dbb5e191c7" }
+#
+# `default-features = false` drops hudi-rs's `spill-rocksdb` feature. It bundles RocksDB, which
+# needs libclang (bindgen) and a C++ toolchain at build time and is not available in the
+# community-extensions build containers. Without it, a merge-on-read merge that exceeds
+# `hoodie.memory.merge.max.size` fails with an error instead of spilling to disk.
+hudi_rs = { package = "hudi", git = "https://github.com/apache/hudi-rs", rev = "3abc4d5172434d58071ea8cd0ca5b6dbb5e191c7", default-features = false }
 tokio = { version = "1", features = ["rt-multi-thread"] }
 futures = "0.3"
 url = "2"
