@@ -18,7 +18,7 @@ lto = true
 strip = true
 
 [dependencies]
-duckdb = { version = "~1.10505.0", features = ["loadable-extension"] }
+duckdb = { version = "~1.10506.0", features = ["loadable-extension"] }
 # Renamed so it does not clash with this crate's own lib name (`hudi`).
 #
 # `default-features = false` drops hudi-rs's `spill-rocksdb` feature. It bundles RocksDB, which

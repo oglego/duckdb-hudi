@@ -5,7 +5,7 @@ EXTENSION_NAME=hudi
 # Note: currently extension-template-rs requires this, as duckdb-rs relies on unstable C API functionality
 USE_UNSTABLE_C_API=1
 # Target DuckDB version
-TARGET_DUCKDB_VERSION=v1.5.5
+TARGET_DUCKDB_VERSION=v1.5.6
 
 UNAME_S := $(shell uname -s)
 UNAME_M := $(shell uname -m)
