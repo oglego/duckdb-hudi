@@ -43,13 +43,23 @@ else
   PROTOC_BIN_IN_ZIP := bin/protoc
 endif
 
+# On Windows runners (Git Bash/MSYS) `unzip` is usually missing and /usr/local is not on the PATH
+# seen by cargo's build scripts, so the generic install below can silently do nothing. Install
+# protoc with Python into build/protoc instead and point prost-build at it through PROTOC.
+ifneq (,$(findstring win,$(PROTOC_ARCH)))
+ifeq ($(shell command -v protoc 2>/dev/null),)
+export PROTOC := $(shell python3 scripts/install_protoc.py)
+$(if $(PROTOC),,$(error Failed to install protoc with scripts/install_protoc.py))
+endif
+endif
+
 # Use sudo if available, otherwise run without (e.g. in rootless containers)
 SUDO := $(shell command -v sudo 2>/dev/null && echo "sudo" || echo "")
 
 all: configure debug
 
 install_protoc:
-	@which protoc > /dev/null 2>&1 && echo "protoc already installed, skipping" || ( \
+	@( [ -f "$$PROTOC" ] || which protoc > /dev/null 2>&1 ) && echo "protoc already installed, skipping" || ( \
         echo "Installing protoc $(PROTOC_VERSION) for $(PROTOC_ARCH)..." && \
         if [ "$(PROTOC_ARCH)" = "unknown" ]; then \
             echo "Unsupported OS/arch: $(UNAME_S)/$(UNAME_M). Please install protobuf-compiler manually." && exit 1; \
